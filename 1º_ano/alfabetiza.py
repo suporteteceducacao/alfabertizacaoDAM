@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from fpdf import FPDF  # Biblioteca para gerar PDF
 
 # Configuração da página Streamlit
 st.set_page_config(
@@ -104,78 +105,81 @@ if st.session_state.login_success:
     # Filtra os dados da escola logada
     inep_logado = st.session_state.escola_logada
 
-    if inep_logado == 'TODAS':
-        # Se for o INEP mestre, exibe todas as escolas
-        escolas = df_ama['ESCOLA'].unique().tolist()
-        escolas.insert(0, 'TODAS')  # Adiciona a opção "TODAS"
+    # Cria abas para "Resultados" e "Ranking"
+    tab1, tab2 = st.tabs(["Resultados", "Ranking"])
 
-        # Filtro de escolas acima da tabela de resultados
-        escola_selecionada = st.selectbox("Selecione a ESCOLA", escolas)
+    with tab1:  # Aba "Resultados" (código original)
+        if inep_logado == 'TODAS':
+            # Se for o INEP mestre, exibe todas as escolas
+            escolas = df_ama['ESCOLA'].unique().tolist()
+            escolas.insert(0, 'TODAS')  # Adiciona a opção "TODAS"
 
-        if escola_selecionada == 'TODAS':
-            df_escola_ama = df_ama.copy()  # Exibe todos os dados
+            # Filtro de escolas acima da tabela de resultados
+            escola_selecionada = st.selectbox("Selecione a ESCOLA", escolas)
+
+            if escola_selecionada == 'TODAS':
+                df_escola_ama = df_ama.copy()  # Exibe todos os dados
+            else:
+                df_escola_ama = df_ama[df_ama['ESCOLA'] == escola_selecionada].copy()  # Filtra pela escola selecionada
         else:
-            df_escola_ama = df_ama[df_ama['ESCOLA'] == escola_selecionada].copy()  # Filtra pela escola selecionada
-    else:
-        # Se não for o INEP mestre, exibe apenas os dados da escola logada
-        df_escola_ama = df_ama[df_ama['INEP'] == inep_logado].copy()
+            # Se não for o INEP mestre, exibe apenas os dados da escola logada
+            df_escola_ama = df_ama[df_ama['INEP'] == inep_logado].copy()
 
-    if df_escola_ama.empty:
-        st.warning("Não há dados disponíveis para esta escola.")
-    else:
-        # Ordena os dados pela coluna 'EDIÇÃO' em ordem crescente
-        df_escola_ama = df_escola_ama.sort_values(by='EDIÇÃO')
+        if df_escola_ama.empty:
+            st.warning("Não há dados disponíveis para esta escola.")
+        else:
+            # Ordena os dados pela coluna 'EDIÇÃO' em ordem crescente
+            df_escola_ama = df_escola_ama.sort_values(by='EDIÇÃO')
 
-        # Tabela de resultados de alfabetização (com textos centralizados)
-        
-        st.subheader(f"Tabela de Resultados - Percentual médio de Alfabetização - {escola_selecionada if inep_logado == 'TODAS' else nome_escola}")
-        st.dataframe(
-            df_escola_ama,
-            use_container_width=True,
-            column_config={
-                "INEP": st.column_config.TextColumn("INEP", help="Código INEP da escola"),
-                "ESCOLA": st.column_config.TextColumn("ESCOLA", help="Nome da escola"),
-                "EDIÇÃO": st.column_config.TextColumn("EDIÇÃO", help="Ano da edição"),
-                "PERCENTUAL ALFABETIZAÇÃO": st.column_config.NumberColumn(
-                    "PERCENTUAL ALFABETIZAÇÃO",
-                    help="Percentual de alfabetização",
-                    format="%.1f%%"
-                ),
-            },
-            hide_index=True,
-        )
-
-        # Tabela de diferença entre edições
-        st.subheader(f"Tabela Comparativa entre Edições - {escola_selecionada if inep_logado == 'TODAS' else nome_escola}")
-        variacao_data = []
-        for i in range(1, len(df_escola_ama)):
-            edicao_atual = df_escola_ama.iloc[i]['EDIÇÃO']
-            edicao_anterior = df_escola_ama.iloc[i - 1]['EDIÇÃO']
-            percentual_atual = df_escola_ama.iloc[i]['PERCENTUAL ALFABETIZAÇÃO']
-            percentual_anterior = df_escola_ama.iloc[i - 1]['PERCENTUAL ALFABETIZAÇÃO']
-            diferenca = percentual_atual - percentual_anterior
-
-            # Formata a comparação entre edições (ex: "2023 - 2022")
-            comparacao_edicoes = f"{edicao_atual} - {edicao_anterior}"
-
-            variacao_data.append({
-                'Escola': df_escola_ama.iloc[i]['ESCOLA'],  # mostra a escola
-                'Comparação': comparacao_edicoes,  # Nova coluna com a comparação entre edições
-                'Edição Atual': edicao_atual,
-                'Edição Anterior': edicao_anterior,
-                'Diferença Percentual': diferenca
-            })
-
-        if variacao_data:
-            variacao_df = pd.DataFrame(variacao_data)
-            variacao_df['Diferença Percentual'] = variacao_df['Diferença Percentual'].apply(
-                lambda x: formatar_variacao(x, eh_percentual=True)
+            # Tabela de resultados de alfabetização (com textos centralizados)
+            st.subheader(f"Tabela de Resultados - Percentual médio de Alfabetização - {escola_selecionada if inep_logado == 'TODAS' else nome_escola}")
+            st.dataframe(
+                df_escola_ama,
+                use_container_width=True,
+                column_config={
+                    "INEP": st.column_config.TextColumn("INEP", help="Código INEP da escola"),
+                    "ESCOLA": st.column_config.TextColumn("ESCOLA", help="Nome da escola"),
+                    "EDIÇÃO": st.column_config.TextColumn("EDIÇÃO", help="Ano da edição"),
+                    "PERCENTUAL ALFABETIZAÇÃO": st.column_config.NumberColumn(
+                        "PERCENTUAL ALFABETIZAÇÃO",
+                        help="Percentual de alfabetização",
+                        format="%.1f%%"
+                    ),
+                },
+                hide_index=True,
             )
-            st.write(variacao_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-        else:
-            st.write("Não há dados suficientes para calcular a variação entre as edições.")
 
-        # Gráfico de barras para o percentual de alfabetização por edição
+            # Tabela de diferença entre edições
+            st.subheader(f"Tabela Comparativa entre Edições - {escola_selecionada if inep_logado == 'TODAS' else nome_escola}")
+            variacao_data = []
+            for i in range(1, len(df_escola_ama)):
+                edicao_atual = df_escola_ama.iloc[i]['EDIÇÃO']
+                edicao_anterior = df_escola_ama.iloc[i - 1]['EDIÇÃO']
+                percentual_atual = df_escola_ama.iloc[i]['PERCENTUAL ALFABETIZAÇÃO']
+                percentual_anterior = df_escola_ama.iloc[i - 1]['PERCENTUAL ALFABETIZAÇÃO']
+                diferenca = percentual_atual - percentual_anterior
+
+                # Formata a comparação entre edições (ex: "2023 - 2022")
+                comparacao_edicoes = f"{edicao_atual} - {edicao_anterior}"
+
+                variacao_data.append({
+                    'Escola': df_escola_ama.iloc[i]['ESCOLA'],  # mostra a escola
+                    'Comparação': comparacao_edicoes,  # Nova coluna com a comparação entre edições
+                    'Edição Atual': edicao_atual,
+                    'Edição Anterior': edicao_anterior,
+                    'Diferença Percentual': diferenca
+                })
+
+            if variacao_data:
+                variacao_df = pd.DataFrame(variacao_data)
+                variacao_df['Diferença Percentual'] = variacao_df['Diferença Percentual'].apply(
+                    lambda x: formatar_variacao(x, eh_percentual=True)
+                )
+                st.write(variacao_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+            else:
+                st.write("Não há dados suficientes para calcular a variação entre as edições.")
+
+            # Gráfico de barras para o percentual de alfabetização por edição
         st.subheader(f"Gráfico Percentual de Alfabetização por Edição - {escola_selecionada if inep_logado == 'TODAS' else nome_escola}")
         fig_bar, ax_bar = plt.subplots(figsize=(8, 4))
 
@@ -227,5 +231,107 @@ if st.session_state.login_success:
         ax_line.tick_params(axis='y', colors='blue', labelsize=10)  # Configuração dos ticks do eixo Y
 
         st.pyplot(fig_line)
+
+    with tab2:  # Aba "Ranking" (nova funcionalidade)
+        if inep_logado == 'TODAS':
+            st.subheader("📊 Ranking de Alfabetização por Edição")
+    
+            # Obtém as edições únicas e ordena em ordem crescente
+            edicoes = df_ama['EDIÇÃO'].unique().tolist()
+            edicoes = sorted(edicoes, key=lambda x: int(x))  # Ordena as edições como inteiros
+            
+            # Cria o selectbox com as edições ordenadas
+            edicao_selecionada = st.selectbox("Selecione a EDIÇÃO para o Ranking", edicoes)
+           
+            if edicao_selecionada:
+                # Filtra os dados pela edição selecionada
+                df_ranking = df_ama[df_ama['EDIÇÃO'] == edicao_selecionada].copy()
+
+                # Ordena os dados pelo percentual de alfabetização em ordem decrescente
+                df_ranking = df_ranking.sort_values(by='PERCENTUAL ALFABETIZAÇÃO', ascending=False)
+
+                # Adiciona a coluna de classificação (ord)
+                df_ranking['ord'] = range(1, len(df_ranking) + 1)
+
+                # Exibe a tabela de ranking
+                st.dataframe(
+                    df_ranking[['ord','EDIÇÃO','ESCOLA', 'PERCENTUAL ALFABETIZAÇÃO']],
+                    use_container_width=True,
+                    column_config={
+                        "ord": st.column_config.TextColumn("Classificação", help="Classificação da escola na edição selecionada"),
+                        "ESCOLA": st.column_config.TextColumn("ESCOLA", help="Nome da escola"),
+                        "PERCENTUAL ALFABETIZAÇÃO": st.column_config.NumberColumn(
+                            "PERCENTUAL ALFABETIZAÇÃO",
+                            help="Percentual de alfabetização",
+                            format="%.1f%%"
+                        ),
+                    },
+                    hide_index=True,
+                )
+
+            # Função para gerar o PDF
+            def generate_pdf(edicao_selecionada, df_ranking, logo_path):
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_auto_page_break(auto=True, margin=15)
+
+                # Adiciona a logo
+                pdf.image(logo_path, x=75, y=15, w=70)  # Ajuste a posição (x, y) e o tamanho (w) conforme necessário
+                pdf.ln(20)  # Espaço após a logo
+
+                # Adiciona os títulos abaixo da logo
+                pdf.set_font("Arial", 'B', 16)
+                pdf.cell(0, 10, "Setor de Processamento e Monitoramento de Resultados", ln=True, align="C")
+                pdf.cell(0, 10, "Ranking de Alfabetização", ln=True, align="C")
+                pdf.cell(0, 10, f"Edição {edicao_selecionada}", ln=True, align="C")
+                pdf.ln(10)  # Espaço após os títulos
+
+                # Configurações da tabela
+                pdf.set_font("Arial", size=10)
+                col_widths = [20, 100, 40]  # Larguras das colunas
+
+                # Cabeçalho da tabela (fundo azul e letras brancas)
+                pdf.set_fill_color(0, 0, 139)  # Cor de fundo azul (RGB)
+                pdf.set_text_color(255, 255, 255)  # Cor do texto branco
+                pdf.set_font("Arial", 'B', 12)  # Fonte em negrito e tamanho 12
+                pdf.cell(col_widths[0], 10, "ORD", border=1, fill=True, align="C")
+                pdf.cell(col_widths[1], 10, "ESCOLA", border=1, fill=True, align="C")
+                pdf.cell(col_widths[2], 10, "PERCENTUAL", border=1, fill=True, align="C")
+                pdf.ln()
+
+                # Conteúdo da tabela
+                pdf.set_fill_color(255, 255, 255)  # Fundo branco
+                pdf.set_text_color(0, 0, 0)  # Cor do texto preto
+                pdf.set_font("Arial", size=10)  # Fonte normal
+
+                for index, row in df_ranking.iterrows():
+                    pdf.cell(col_widths[0], 10, str(row['ord']), border=1, fill=True, align="C")
+                    pdf.cell(col_widths[1], 10, row['ESCOLA'], border=1, fill=True, align="C")
+                    pdf.cell(col_widths[2], 10, f"{row['PERCENTUAL ALFABETIZAÇÃO']:.1f}%", border=1, fill=True, align="C")
+                    pdf.ln()
+
+                # Salva o PDF em um arquivo temporário
+                pdf_output = f"ranking_alfabetizacao_{edicao_selecionada}.pdf"
+                pdf.output(pdf_output)
+
+                return pdf_output
+
+            # No código do Streamlit, substitua a parte do PDF por:
+            if st.button("Baixar Ranking em PDF"):
+                logo_path = "1º_ano/img/Logomarca da Secretaria de Educação 2021.png"  # Caminho da logo
+                pdf_output = generate_pdf(edicao_selecionada, df_ranking, logo_path)
+
+                # Disponibiliza o download do PDF
+                with open(pdf_output, "rb") as file:
+                    btn = st.download_button(
+                        label="Download do PDF",
+                        data=file,
+                        file_name=pdf_output,
+                        mime="application/pdf"
+                    )
+            else:
+                st.info("")
+        else:
+            st.warning("Acesso restrito.")
 else:
     st.info("Por favor, faça login para acessar os dados.")
