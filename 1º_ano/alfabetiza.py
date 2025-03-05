@@ -117,10 +117,6 @@ if st.session_state.login_success:
             # Filtro de escolas acima da tabela de resultados
             escola_selecionada = st.selectbox("Selecione a ESCOLA", escolas)
 
-            # Remover coluna 'Unnamed: 0' se existir
-            if 'Unnamed: 0' in df_filtrado.columns:
-                df_filtrado = df_filtrado.drop(columns=['Unnamed: 0'])
-
             if escola_selecionada == 'TODAS':
                 df_escola_ama = df_ama.copy()  # Exibe todos os dados
             else:
