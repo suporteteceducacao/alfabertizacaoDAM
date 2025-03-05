@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from fpdf import FPDF  # Biblioteca para gerar PDF
+import io
 
 # Configuração da página Streamlit
 st.set_page_config(
@@ -210,6 +211,23 @@ if st.session_state.login_success:
         ax_bar.tick_params(axis='y', colors='blue', labelsize=10)  # Configuração dos ticks do eixo Y
 
         st.pyplot(fig_bar)
+        
+        # Botão de download do gráfico de barras
+        buf_bar = io.BytesIO()
+        fig_bar.savefig(buf_bar, format='png', bbox_inches='tight')  # Salva o gráfico em um buffer
+        buf_bar.seek(0)
+
+        # Nome do arquivo com o nome da escola
+        nome_arquivo_bar = f"grafico_barras_alfabetizacao_{escola_selecionada if inep_logado == 'TODAS' else nome_escola}.png"
+
+        # Botão de download
+        st.download_button(
+            label="Baixar Gráfico de Barras (PNG)",
+            data=buf_bar,
+            file_name=nome_arquivo_bar,
+            mime="image/png"
+        )
+
 
         # Gráfico de linhas para o percentual de alfabetização por edição
         st.subheader(f"Gráfico Percentual de Alfabetização por Edição - {escola_selecionada if inep_logado == 'TODAS' else nome_escola}")
@@ -235,6 +253,22 @@ if st.session_state.login_success:
         ax_line.tick_params(axis='y', colors='blue', labelsize=10)  # Configuração dos ticks do eixo Y
 
         st.pyplot(fig_line)
+        
+        # Botão de download do gráfico de linhas
+        buf_line = io.BytesIO()
+        fig_line.savefig(buf_line, format='png', bbox_inches='tight')  # Salva o gráfico em um buffer
+        buf_line.seek(0)
+
+        # Nome do arquivo com o nome da escola
+        nome_arquivo_line = f"grafico_linhas_alfabetizacao_{escola_selecionada if inep_logado == 'TODAS' else nome_escola}.png"
+
+        # Botão de download
+        st.download_button(
+            label="Baixar Gráfico de Linhas (PNG)",
+            data=buf_line,
+            file_name=nome_arquivo_line,
+            mime="image/png"
+        )
 
     with tab2:  # Aba "Ranking" (nova funcionalidade)
         if inep_logado == 'TODAS':
