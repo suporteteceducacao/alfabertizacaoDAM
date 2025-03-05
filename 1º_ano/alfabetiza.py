@@ -187,6 +187,7 @@ if st.session_state.login_success:
             # Gráfico de barras para o percentual de alfabetização por edição
         st.subheader(f"Gráfico Percentual de Alfabetização por Edição - {escola_selecionada if inep_logado == 'TODAS' else nome_escola}")
         fig_bar, ax_bar = plt.subplots(figsize=(8, 4))
+        ax_bar.set_title("Gráfico Percentual de Alfabetização por Edição")
 
         # Altere a cor das barras para azul
         barras = ax_bar.bar(df_escola_ama['EDIÇÃO'], df_escola_ama['PERCENTUAL ALFABETIZAÇÃO'], color='blue')
@@ -232,6 +233,7 @@ if st.session_state.login_success:
         # Gráfico de linhas para o percentual de alfabetização por edição
         st.subheader(f"Gráfico Percentual de Alfabetização por Edição - {escola_selecionada if inep_logado == 'TODAS' else nome_escola}")
         fig_line, ax_line = plt.subplots(figsize=(8, 4))
+        ax_line.set_title("Gráfico Percentual de Alfabetização por Edição")
         ax_line.plot(df_escola_ama['EDIÇÃO'], df_escola_ama['PERCENTUAL ALFABETIZAÇÃO'], marker='o', color='blue', linestyle='-', linewidth=2, markersize=8)
 
         # Adicionar rótulos de percentual nos pontos
