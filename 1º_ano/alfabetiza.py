@@ -30,6 +30,10 @@ def load_data(file_path):
 try:
     df_login = load_data('1º_ano/xls/senhas_acesso.xlsx')  # Planilha de login
     df_ama = load_data('1º_ano/xls/bd_ama.xlsx')  # Planilha de alfabetização
+
+    # Remover a coluna 'Unnamed: 0' se existir
+    df_login = df_login.drop(columns=['Unnamed: 0'], errors='ignore')
+    df_ama = df_ama.drop(columns=['Unnamed: 0'], errors='ignore')
     
     # Remover espaços extras nos nomes das colunas e valores
     df_login.columns = df_login.columns.str.strip()
